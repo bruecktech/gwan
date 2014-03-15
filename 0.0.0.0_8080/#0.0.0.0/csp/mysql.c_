@@ -1,0 +1,34 @@
+// ============================================================================
+// C servlet sample for the G-WAN Web Application Server (http://trustleap.ch/)
+// ----------------------------------------------------------------------------
+// mysql.c: querying mySQL from G-WAM
+// ============================================================================
+#pragma link "mysqlclient"
+#pragma include "/usr/include/mysql"
+
+#include <mysql.h>
+#include "gwan.h" // G-WAN exported functions
+
+static MYSQL *conn = NULL;
+
+int main(int argc, char *argv[])
+{
+   xbuf_t *reply = get_reply(argv);
+   conn = (MYSQL *)mysql_init(conn);
+
+   if(! conn) {
+     xbuf_xcat(reply, "MySQL Error (%d): %s", mysql_errno(conn), mysql_error(conn));
+     return(200);
+   }
+
+   xbuf_xcat(reply, "MySQL Client Version: %d", mysql_get_client_version());
+   //xbuf_xcat(reply, "MySQL Server Version: %d", mysql_get_server_version(conn));
+   //xbuf_xcat(reply, "Server Ping: %d", mysql_ping(conn));
+   mysql_real_connect(conn, "localhost", "gwan", "gwan", "gwan", NULL, NULL, 0);
+
+   return 200;
+}
+// ============================================================================
+// End of Source Code
+// ============================================================================
+

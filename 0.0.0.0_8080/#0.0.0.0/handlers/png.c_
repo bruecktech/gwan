@@ -1,0 +1,96 @@
+// ============================================================================
+// "Content-Type" Handler sample for the G-WAN Web Server http://trustleap.ch/
+// ----------------------------------------------------------------------------
+// html.c: just to test that it works
+// ============================================================================
+#pragma link "cairo"
+#pragma include "/usr/include/cairo"
+
+#include "cairo.h"
+#include "gwan.h" // G-WAN exported functions
+
+#include <stdio.h>
+
+
+static cairo_status_t
+write_png_stream_to_buffer (void *in_closure, const unsigned char *data,
+                                                unsigned int length)
+{
+   if(xbuf_ncat(in_closure, (char *)data, length)){
+      return CAIRO_STATUS_SUCCESS;
+   } else {
+      return CAIRO_STATUS_NO_MEMORY;
+   }
+}
+
+int init(int argc, char *argv[])
+{
+   // get the Handler states that will be notified
+   // a pointer on the states integer
+   u32 *states = (u32*)get_env(argv, US_HANDLER_STATES);
+
+   // setup the Handler states that we want to be notified
+   *states = 1 << HDL_BEFORE_WRITE;
+   return 0;
+}
+
+int main(int argc, char *argv[])
+{
+
+   printf("png handler called");
+
+   //char *req = (char*)get_env(argv, REQUEST); // query: "start=200000"
+
+   const long state = (long)argv[0];
+   printf("state: %ld\n", state);
+   printf("HDL_BEFORE_WRITE: %d\n", HDL_BEFORE_WRITE);
+
+   //switch(state) {
+   //   case HDL_BEFORE_WRITE:
+   //   {
+         printf("HDL_BEFORE_WRITE called");
+
+         xbuf_t *reply = get_reply(argv);
+
+         // -------------------------------------------------------------------------
+         // build the bitmap using Cairo
+         // -------------------------------------------------------------------------
+         int stride = cairo_format_stride_for_width (CAIRO_FORMAT_ARGB32, 640);
+         cairo_surface_t *surface_source = cairo_image_surface_create_for_data((unsigned char *)reply->ptr, CAIRO_FORMAT_ARGB32, 640, 480, stride);
+         //cairo_t *cr_source = cairo_create (surface_source);
+
+         //cairo_select_font_face(cr_source, "serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+         //cairo_set_font_size   (cr_source, 32.0);
+         //cairo_set_source_rgb  (cr_source, 0.0, 0.0, 1.0);
+         //cairo_move_to         (cr_source, 10.0, 50.0);
+         //cairo_show_text       (cr_source, "Hello, world");
+
+         cairo_surface_t *surface_dest = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 320, 240);
+         cairo_t *cr_dest = cairo_create (surface_dest);
+
+         // Scale
+         //cairo_translate(cr, 800, 800);
+         cairo_scale(cr_dest, 2, 2);
+         cairo_set_source_surface(cr_dest, surface_source, 0, 0);
+         cairo_paint(cr_dest);
+
+         cairo_surface_destroy         (surface_source);
+
+         int rc;
+         xbuf_clear(reply);
+         rc = cairo_surface_write_to_png_stream (surface_dest, write_png_stream_to_buffer, reply);
+         cairo_surface_destroy(surface_dest);
+
+         if(rc == CAIRO_STATUS_SUCCESS){
+            printf("returning 2");
+            return 2;
+         } else {
+            return 500;
+         }
+    //  }
+    //  break;
+   //}
+}
+// ============================================================================
+// End of Source Code
+// ============================================================================
